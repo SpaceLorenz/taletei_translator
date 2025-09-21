@@ -13,7 +13,6 @@ def get(dict, key):
     return key
 
 class TaleteiTranslator:
-
     plural = "se"
 
     def __init__(self, from_fr = True):
@@ -175,7 +174,7 @@ from collections import OrderedDict
 
 class TextSimplificator:
     def __init__(self, model="fr_dep_news_trf"):
-        model = "fr_core_news_md"
+        #model = "fr_core_news_md"
         self.nlp = spacy.load(model)
     
     def simplify(self, text_file, verbose=False):
@@ -289,3 +288,74 @@ class TextSimplificator:
                 return "fut"
         return "pres"
         
+
+class TaleteiTranscriptor:
+    def __init__(self):
+        self.syllables = []
+        with open("syllables.txt", 'r') as f:
+            self.syllables = f.readlines()
+        self.syllables = [s.replace("\n","") for s in self.syllables]
+        self.syllables.sort(key=lambda s: len(s))
+        self.syllables.reverse()
+
+    def transcribe_file(self, text_file):
+        txt = ""
+        with open(text_file, 'r') as f:
+            txt = f.read()
+        return self.transcribe(txt)
+
+    def transcribe(self, text):
+        lines = text.split('\n')
+        transcribed_text = ""
+        for line in lines:
+            neli = ""
+            for word in line.split(" "):   
+                hasdot = False
+                if "." in word:
+                    word = word.replace(".", "")
+                    hasdot = True
+                drwo = ""  
+                print(f"{word} {drwo}") 
+                while len(word) > 0:
+                    found = False     
+                    for syl in self.syllables:
+                        if word.endswith(syl):
+                            drwo += syl
+                            word = word[0:-len(syl)]
+                            print(f"{word} {drwo}") 
+                            found = True
+                            break
+                    if not found:
+                        break
+                if hasdot: drwo = "." + drwo
+                neli = drwo + " " + neli
+            transcribed_text += neli + "\n"
+        clean_text = transcribed_text.replace("  ", " ")
+        return clean_text
+    
+import sys
+
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    step = int(args[0])
+    file = None
+    if len(args) > 1:
+        file = args[1]
+
+    if step < 2: # translation
+        if not file:
+            file = "text.txt"
+        translator = TaleteiTranslator()
+        translated_text = translator.translate_file(file, verbose = True)
+        print(translated_text)
+        with open("save.txt", 'w') as f:
+            f.write(translated_text)
+    else: # transcription
+        if not file:
+            file = "save.txt"
+        transcriptor = TaleteiTranscriptor()
+        transcription = transcriptor.transcribe_file(file)
+        print(transcription)
+        with open("transcripted_text.txt", 'w') as f:
+            f.write(transcription)
+            
